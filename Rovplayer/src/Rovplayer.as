@@ -3,6 +3,7 @@ package
 	import com.demonsters.debugger.MonsterDebugger;
 	import com.rovp.components.VolumeSlider;
 	import com.rovp.uitls.DownloadInfoUitls;
+	import com.rovp.uitls.QuickHotKey;
 	
 	import flash.display.Sprite;
 	import flash.display.StageDisplayState;
@@ -56,6 +57,7 @@ package
 		public var volumeSlider:VolumeSlider;
 		public var fullscreenBtn:FullscreenBtn;
 		
+		private var _defaultVolume:Number = 0.0;
 		public function Rovplayer()
 		{
 			Security.allowDomain("*");
@@ -75,8 +77,11 @@ package
 //			var url905:String = "http://124.95.137.241:3581//uid$151758877/stamp$1469436164/keyid$67141632/auth$4dd4d307e6d3402d8d607b76c738f95e/a0000000000000000000000000000905.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:905,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1";
 //			var url908:String = "http://114.112.91.236:18080//uid$151758877/stamp$1467944073/keyid$67141632/auth$4cffd107a27bd82b6029b064c9c9ec14/a0000000000000000000000000000908.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:908,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1&callback=cb";
 //			playVideo(url905);
+			DownloadInfoUitls.instance.clearHTTPCache = true;
 		}
-		private function playVideo(url:String):void{
+		private function playVideo(url:String, defaultVolume:Number = 0.5):void{
+			_defaultVolume = defaultVolume;
+			
 			initMedia(url);
 			
 			resource = new URLResource(url);
@@ -123,6 +128,8 @@ package
 			player.addEventListener(PlayEvent.PLAY_STATE_CHANGE, onPlayStateChange);
 			player.addEventListener(AudioEvent.MUTED_CHANGE,onMutedChange);
 			
+			player.volume = _defaultVolume;
+			
 			container = new MediaContainer();			
 			addChild(container);
 		}
@@ -153,7 +160,7 @@ package
 			volumeBg = new VolumeBg();
 			volumeBar = new VolumeBar();
 			volumeControl = new VolumeControl();
-			volumeSlider = new VolumeSlider(volumeBg, volumeBar, volumeControl, 0, 1, 0.5);
+			volumeSlider = new VolumeSlider(volumeBg, volumeBar, volumeControl, 0, 1, _defaultVolume);
 			volumeSlider.x = 1574;
 			volumeSlider.y = 50;
 			volumeSlider.addEventListener(Event.CHANGE, onVolumeChange);
@@ -188,6 +195,9 @@ package
 			addChild(speedText);
 			
 			DownloadInfoUitls.instance.addEventListener(Event.CHANGE, onSpeedChange);
+			QuickHotKey.quickAddKey(this, 32, onPlayClick, false);
+			QuickHotKey.quickAddKey(this, 38, onVolumeKeyUp, false);
+			QuickHotKey.quickAddKey(this, 40, onVolumeKeyDown, false);
 		}
 		
 		protected function onPlayerError(event:MediaErrorEvent):void{
@@ -215,7 +225,7 @@ package
 		{	
 		}
 		
-		protected function onPlayClick( e:MouseEvent ):void
+		protected function onPlayClick( e:MouseEvent = null):void
 		{
 			if(!player.paused){
 				player.pause();
@@ -249,6 +259,24 @@ package
 					player.muted = false;
 					player.volume = volumeSlider.value;
 				}
+			}
+		}
+		
+		protected function onVolumeKeyUp():void{
+			player.volume += 0.1;
+			player.volume = Number(player.volume.toFixed(1));
+			volumeSlider.value = player.volume;
+			if(player.volume >0){
+				player.muted = false;
+			}
+		}
+		
+		protected function onVolumeKeyDown():void{
+			player.volume -= 0.1;
+			player.volume = Number(player.volume.toFixed(1));
+			volumeSlider.value = player.volume;
+			if(player.volume <=0){
+				player.muted = true;
 			}
 		}
 		

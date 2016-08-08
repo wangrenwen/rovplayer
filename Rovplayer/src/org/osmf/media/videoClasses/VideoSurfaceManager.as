@@ -1,7 +1,5 @@
 package org.osmf.media.videoClasses
 {
-	[ExcludeClass]
-	
 	import flash.display.Stage;
 	import flash.events.Event;
 	import flash.media.StageVideo;
@@ -14,6 +12,7 @@ package org.osmf.media.videoClasses
 	 * 
 	 * VideoSurfaceManager manages the workflow related to StageVideo support.
 	 */ 
+	[ExcludeClass]
 	internal class VideoSurfaceManager
 	{	
 		public function registerVideoSurface(videoSurface:VideoSurface):void

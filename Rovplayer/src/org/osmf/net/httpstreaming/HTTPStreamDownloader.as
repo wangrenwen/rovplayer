@@ -42,6 +42,7 @@ package org.osmf.net.httpstreaming
 	import org.osmf.events.HTTPStreamingEventReason;
 	import org.osmf.net.httpstreaming.flv.FLVTagScriptDataMode;
 	import org.osmf.utils.OSMFSettings;
+	import com.demonsters.debugger.MonsterDebugger;
 
 	CONFIG::LOGGING
 	{
@@ -167,7 +168,16 @@ package org.osmf.net.httpstreaming
 				_timeoutInterval = timeout;
 				_request = request;
 				
-				trace("超时！");
+				
+				CONFIG::RENWEN{
+					if(DownloadInfoUitls.instance.clearHTTPCache == true){
+						_request.url += "&time=" + new Date().valueOf().toString();
+						MonsterDebugger.log("request appended time id:" + _request.url);
+					}
+					
+				}
+					
+				
 				CONFIG::LOGGING
 				{
 					logger.debug("Loading (timeout=" + _timeoutInterval + ", retry=" + _currentRetry + "):" + _request.url.toString());

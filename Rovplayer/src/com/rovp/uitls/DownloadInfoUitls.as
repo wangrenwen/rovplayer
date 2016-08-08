@@ -8,6 +8,7 @@ package com.rovp.uitls
 		private static var _instance:DownloadInfoUitls;
 		private static var _downloadSpeed:int = 0;
 		private var _downloadSpeedFormat:String = "0 B/S";
+		private var _clearHTTPCache:Boolean = false;
 		public function DownloadInfoUitls()
 		{
 			
@@ -28,6 +29,14 @@ package com.rovp.uitls
 			return formatDownloadSpeed(_downloadSpeed);
 		}
 		
+		public function set clearHTTPCache(value:Boolean):void{
+			_clearHTTPCache = value;
+		}
+		
+		public function get clearHTTPCache():Boolean{
+			return _clearHTTPCache;
+		}
+		
 		private function formatDownloadSpeed(speed:Number):String{
 			if(speed < 1024){
 				_downloadSpeedFormat = speed + " B/S";
@@ -38,7 +47,6 @@ package com.rovp.uitls
 			else if(speed >= 1024 * 1024){
 				_downloadSpeedFormat = (speed / 1024 / 1024 >> 0)+ " MB/S";
 			}
-			trace(_downloadSpeedFormat);
 			return _downloadSpeedFormat;
 		}
 	}

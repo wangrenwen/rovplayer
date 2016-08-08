@@ -13,7 +13,7 @@ package com.rovp.components
 		private var bg:MovieClip;
 		private var bar:MovieClip;
 		private var control:MovieClip;
-		private var values:Number=0;
+		private var _value:Number=0;
 		private var minValue:Number=0;
 		private var maxValue:Number=1;
 		private var initializtion:Number;
@@ -24,7 +24,7 @@ package com.rovp.components
 			this.control = control;
 			this.minValue=minValue;
 			this.maxValue=maxValue;
-			this.values = this.initializtion = initializtion;
+			this._value = this.initializtion = initializtion;
 			init();
 		}
 		
@@ -34,7 +34,7 @@ package com.rovp.components
 			bg.addEventListener(MouseEvent.CLICK, onBgClick);
 			addChild(bg);
 			
-			control.x=Math.abs(this.values-minValue)/ Math.abs(maxValue-minValue)*bg.width;
+			control.x=Math.abs(this._value-minValue)/ Math.abs(maxValue-minValue)*bg.width;
 			control.y=0;
 			control.buttonMode=true;
 			
@@ -55,12 +55,12 @@ package com.rovp.components
 			if(muted){
 				control.x = 0;
 			}else{
-				if(this.values == 0){
-					this.values = this.initializtion;
+				if(this._value == 0){
+					this._value = this.initializtion;
 					var evt:Event=new Event(Event.CHANGE);
 					this.dispatchEvent(evt);
 				}
-				control.x = this.values * bg.width;
+				control.x = this._value * bg.width;
 			}
 			bar.width = control.x;
 		}
@@ -97,14 +97,18 @@ package com.rovp.components
 			control.stage.removeEventListener(MouseEvent.MOUSE_MOVE,onMoveHandler);
 		}
 		
-		public function set value(dataValue:Number):void
+		public function set value(value:Number):void
 		{
-			this.values=dataValue;
+			if(this._value != value){
+				this._value=value;
+				control.x = this._value * bg.width;
+				bar.width = control.x;
+			}
 		}
 		
 		public function get value():Number
 		{
-			return values;
+			return _value;
 		}
 		
 	}

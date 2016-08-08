@@ -186,10 +186,10 @@ package org.denivip.osmf.elements.m3u8Classes
 			
 			if(tempDynamicRes && tempDynamicRes.streamItems){
 				if(tempDynamicRes.streamItems.length == 1){
-					var temp_res:StreamingURLResource = (baseResource as StreamingURLResource);
-					if(!temp_res)
-						temp_res = new StreamingURLResource(baseResource.url);
-					tempStreamingRes = HLSStreamingResource.createHLSResource(temp_res);
+					var temp_res1:StreamingURLResource = (baseResource as StreamingURLResource);
+					if(!temp_res1)
+						temp_res1 = new StreamingURLResource(baseResource.url);
+					tempStreamingRes = HLSStreamingResource.createHLSResource(temp_res1);
 					if(tempStreamingRes){
 						var url:String = Url.absolute(tempDynamicRes.host, tempDynamicRes.streamItems[0].streamName);
 						result = new HLSStreamingResource(
