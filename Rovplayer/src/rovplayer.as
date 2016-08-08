@@ -36,8 +36,9 @@ package
 	import org.osmf.media.PluginInfoResource;
 	import org.osmf.media.URLResource;
 	import org.osmf.traits.PlayState;
+	import org.osmf.utils.OSMFSettings;
 	
-	public class Rovplayer extends Sprite
+	public class rovplayer extends Sprite
 	{
 		private var factory:MediaFactory;
 		private var player:MediaPlayer
@@ -57,8 +58,9 @@ package
 		public var volumeSlider:VolumeSlider;
 		public var fullscreenBtn:FullscreenBtn;
 		
+		private var _defaultMuted:Boolean = false;
 		private var _defaultVolume:Number = 0.0;
-		public function Rovplayer()
+		public function rovplayer()
 		{
 			Security.allowDomain("*");
 			Security.allowInsecureDomain("*");
@@ -77,10 +79,10 @@ package
 //			var url905:String = "http://124.95.137.241:3581//uid$151758877/stamp$1469436164/keyid$67141632/auth$4dd4d307e6d3402d8d607b76c738f95e/a0000000000000000000000000000905.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:905,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1";
 //			var url908:String = "http://114.112.91.236:18080//uid$151758877/stamp$1467944073/keyid$67141632/auth$4cffd107a27bd82b6029b064c9c9ec14/a0000000000000000000000000000908.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:908,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1&callback=cb";
 //			playVideo(url905);
-			DownloadInfoUitls.instance.clearHTTPCache = true;
 		}
-		private function playVideo(url:String, defaultVolume:Number = 0.5):void{
-			_defaultVolume = defaultVolume;
+		
+		private function playVideo(url:String, config:Object = null):void{
+			parseConfig(config);
 			
 			initMedia(url);
 			
@@ -111,9 +113,33 @@ package
 				initControlBar();
 			}
 		}
+		
+		private function parseConfig(conf:Object):void{
+			for(var attr:String in conf){
+				if(attr == "muted"){
+					_defaultMuted = (conf[attr] === "true");
+					continue;
+				}
+				
+				if(attr =="volume"){
+					_defaultVolume = Number(conf[attr]);
+					continue;
+				}
+				
+				if(attr == "clearHTTPCache"){
+					DownloadInfoUitls.instance.clearHTTPCache = (conf[attr] == "true");
+					continue;
+				}
+				
+				if(OSMFSettings[attr] != null){
+					OSMFSettings[attr] = int(conf[attr]);
+					continue;
+				}
+			}
+		}
+		
 		private function initMedia(url:String):void {		
 			//TODO 解析地址是哪种流
-			
 			factory = new DefaultMediaFactory();
 			factory.addEventListener(MediaFactoryEvent.PLUGIN_LOAD, handlePluginLoad);
 			factory.addEventListener(MediaFactoryEvent.PLUGIN_LOAD_ERROR, handlePluginLoadError);
