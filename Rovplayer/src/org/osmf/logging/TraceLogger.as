@@ -21,6 +21,7 @@
 *****************************************************/
 package org.osmf.logging
 {
+	import com.demonsters.debugger.MonsterDebugger;
 	
 	
 	/**
@@ -111,7 +112,7 @@ package org.osmf.logging
 			msg += "[" + category + "] " + applyParams(message, params);
 			
 			// trace the message
-			trace(msg);
+			MonsterDebugger.log(msg);
 		}
 		
 		private function leadingZeros(x:Number):String
