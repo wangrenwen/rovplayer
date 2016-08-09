@@ -1,6 +1,7 @@
 package
 {
 	import com.demonsters.debugger.MonsterDebugger;
+	import com.greensock.TweenNano;
 	import com.rovp.components.VolumeSlider;
 	import com.rovp.uitls.DownloadInfoUitls;
 	import com.rovp.uitls.QuickHotKey;
@@ -10,9 +11,12 @@ package
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.events.TimerEvent;
 	import flash.external.ExternalInterface;
 	import flash.system.Security;
 	import flash.text.TextField;
+	import flash.ui.Mouse;
+	import flash.utils.Timer;
 	
 	import org.denivip.osmf.plugins.HLSPluginInfo;
 	import org.osmf.containers.MediaContainer;
@@ -46,20 +50,24 @@ package
 		private var resource:URLResource;
 		
 		
-		public var controlBar:Sprite;
-		public var controlBG:ControlBg;
-		public var bufferingSymbol:BufferingSymbol;
-		public var speedText:SpeedText;
-		public var playBtn:PlayBtn;
-		public var volumeBtn:VolumeBtn;
-		public var volumeBg:VolumeBg;
-		public var volumeBar:VolumeBar;
-		public var volumeControl:VolumeControl;
-		public var volumeSlider:VolumeSlider;
-		public var fullscreenBtn:FullscreenBtn;
+		private var controlBar:Sprite;
+		private var controlBG:ControlBg;
+		private var bufferingSymbol:BufferingSymbol;
+		private var speedText:SpeedText;
+		private var playBtn:PlayBtn;
+		private var volumeBtn:VolumeBtn;
+		private var volumeBg:VolumeBg;
+		private var volumeBar:VolumeBar;
+		private var volumeControl:VolumeControl;
+		private var volumeSlider:VolumeSlider;
+		private var fullscreenBtn:FullscreenBtn;
 		
 		private var _defaultMuted:Boolean = false;
 		private var _defaultVolume:Number = 0.0;
+		private var _wake:Boolean = true;
+		private var _sleepTimer:Timer;
+		private var _sleepTimeInerval:int = 5;
+		private var _isControlShow:Boolean = true;
 		public function rovplayer()
 		{
 			Security.allowDomain("*");
@@ -76,12 +84,29 @@ package
 		private function onAdded(e:Event):void{
 			this.stage.scaleMode = StageScaleMode.EXACT_FIT;
 			
-//			var url905:String = "http://124.95.137.241:3581//uid$151758877/stamp$1469436164/keyid$67141632/auth$4dd4d307e6d3402d8d607b76c738f95e/a0000000000000000000000000000905.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:905,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1";
+			var url905:String = "http://124.95.137.241:3581//uid$151758877/stamp$1469436164/keyid$67141632/auth$4dd4d307e6d3402d8d607b76c738f95e/a0000000000000000000000000000905.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:905,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1";
 //			var url908:String = "http://114.112.91.236:18080//uid$151758877/stamp$1467944073/keyid$67141632/auth$4cffd107a27bd82b6029b064c9c9ec14/a0000000000000000000000000000908.m3u8?bke=114.112.91.236&type=get_m3u8&host=114.112.91.236:18080&port=13528&zip=1&proto=10&ext=qtype:400,sublevel:908,b2c:1,starttime:1462218420,endtime:1462223700,oid:10017,eid:100961,f:1,p:0,m:1&callback=cb";
-//			playVideo(url905);
+			playVideo(url905);
 		}
 		
 		private function playVideo(url:String, config:Object = null):void{
+//			config = {};
+//			//一般参数
+//			config.muted = false;
+//			config.volume = 0.1;
+//			//高级参数
+//			config.clearHTTPCache = true;//防止片段请求304
+//			config.hdsMinimumBufferTime = 4; //最小缓冲时间
+//			config.hdsAdditionalBufferTime = 2;//附加缓冲时间
+//			config.hdsBytesProcessingLimit = 102400;//视频切片尺寸
+//			config.hdsBytesReadingLimit = 102400;//最大读取字节
+//			config.hdsMainTimerInterval = 25;//状态自检间隔
+//			config.hdsLiveStallTolerance = 15;//缓冲结束后等待播放时间
+//			config.hdsMaximumRetries = 5;//流下载超时重试次数
+//			config.hdsTimeoutAdjustmentOnRetry = 4000;//重试间隔时间
+//			config.hdsFragmentDownloadTimeout = 4000;//片段加载超时重试间隔
+//			config.hdsIndexDownloadTimeout = 4000;//索引加载超时重试间隔
+			
 			parseConfig(config);
 			
 			initMedia(url);
@@ -100,7 +125,7 @@ package
 				var elementLayout:LayoutMetadata = new LayoutMetadata();
 				elementLayout.percentWidth = 100;
 				elementLayout.percentHeight = 100;
-				elementLayout.scaleMode = ScaleMode.STRETCH;
+				elementLayout.scaleMode = ScaleMode.LETTERBOX;
 				elementLayout.layoutMode = LayoutMode.NONE;
 				elementLayout.verticalAlign = VerticalAlign.MIDDLE;
 				elementLayout.horizontalAlign = HorizontalAlign.CENTER;
@@ -111,13 +136,24 @@ package
 				player.media=element;
 				
 				initControlBar();
+				
+				this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
+				stage.addEventListener(MouseEvent.CLICK, onWake);
+				stage.addEventListener(MouseEvent.MOUSE_MOVE, onWake);
+				stage.addEventListener(MouseEvent.MOUSE_OVER, onWake);
+				stage.addEventListener(MouseEvent.MOUSE_DOWN, onWake)
+				
+				_sleepTimer = new Timer(_sleepTimeInerval * 1000, 1);
+				_sleepTimer.addEventListener(TimerEvent.TIMER_COMPLETE, onSleepTimerComplete);
+				_sleepTimer.start();
 			}
 		}
 		
 		private function parseConfig(conf:Object):void{
 			for(var attr:String in conf){
 				if(attr == "muted"){
-					_defaultMuted = (conf[attr] === "true");
+					_defaultMuted = Boolean(conf[attr]);
+					MonsterDebugger.log("mute is :"+conf[attr]);
 					continue;
 				}
 				
@@ -127,7 +163,8 @@ package
 				}
 				
 				if(attr == "clearHTTPCache"){
-					DownloadInfoUitls.instance.clearHTTPCache = (conf[attr] == "true");
+					DownloadInfoUitls.instance.clearHTTPCache = Boolean(conf[attr]);
+					MonsterDebugger.log("clearHTTPCache is :"+conf[attr]);
 					continue;
 				}
 				
@@ -154,6 +191,7 @@ package
 			player.addEventListener(PlayEvent.PLAY_STATE_CHANGE, onPlayStateChange);
 			player.addEventListener(AudioEvent.MUTED_CHANGE,onMutedChange);
 			
+			player.muted = _defaultMuted;
 			player.volume = _defaultVolume;
 			
 			container = new MediaContainer();			
@@ -177,7 +215,7 @@ package
 			playBtn.addEventListener(MouseEvent.CLICK, onPlayClick);
 			
 			volumeBtn = new VolumeBtn();
-			volumeBtn.stop();
+			volumeBtn.gotoAndStop(_defaultMuted == true ? "mute" : "loud");
 			volumeBtn.x = 1514;
 			volumeBtn.y = 50;
 			volumeBtn.buttonMode = true;
@@ -221,14 +259,47 @@ package
 			addChild(speedText);
 			
 			DownloadInfoUitls.instance.addEventListener(Event.CHANGE, onSpeedChange);
+			
 			QuickHotKey.quickAddKey(this, 32, onPlayClick, false);
 			QuickHotKey.quickAddKey(this, 38, onVolumeKeyUp, false);
 			QuickHotKey.quickAddKey(this, 40, onVolumeKeyDown, false);
 		}
 		
+		protected function onSleepTimerComplete(e:TimerEvent):void{
+			if(player.buffering == false)_wake = false;
+		}
+		
+		protected function onEnterFrame(e:Event):void{
+			if(_wake == true && _isControlShow == false){
+				showControlBar();
+			}else if(_wake == false && _isControlShow == true && player.buffering == false){
+				hideControlBar();
+			}
+		}
+		
+		protected function onWake(e:MouseEvent = null):void{
+			if(_sleepTimer != null){
+				_sleepTimer.reset();
+				_sleepTimer.start();
+			}
+			_wake = true;
+			Mouse.show();
+		}
+		
+		protected function hideControlBar():void{
+			_isControlShow = false;
+			TweenNano.to(controlBar, 0.5, {y:1080});
+			Mouse.hide();
+		}
+		
+		protected function showControlBar():void{
+			_isControlShow = true;
+			TweenNano.to(controlBar, 0.5, {y:1080-90});
+			
+		}
+		
 		protected function onPlayerError(event:MediaErrorEvent):void{
 			MonsterDebugger.log("player error" + event.error);
-			
 		}
 		
 		protected function handlePluginLoadError(event:MediaFactoryEvent):void
@@ -291,7 +362,7 @@ package
 		protected function onVolumeKeyUp():void{
 			player.volume += 0.1;
 			player.volume = Number(player.volume.toFixed(1));
-			volumeSlider.value = player.volume;
+			if(volumeSlider != null)volumeSlider.value = player.volume;
 			if(player.volume >0){
 				player.muted = false;
 			}
@@ -300,7 +371,7 @@ package
 		protected function onVolumeKeyDown():void{
 			player.volume -= 0.1;
 			player.volume = Number(player.volume.toFixed(1));
-			volumeSlider.value = player.volume;
+			if(volumeSlider != null)volumeSlider.value = player.volume;
 			if(player.volume <=0){
 				player.muted = true;
 			}
@@ -308,10 +379,10 @@ package
 		
 		protected function onMutedChange(e:AudioEvent):void{
 			if(e.muted == true){
-				volumeBtn.gotoAndStop("mute");
+				if(volumeBtn != null)volumeBtn.gotoAndStop("mute");
 				if(volumeSlider != null)volumeSlider.mute(e.muted);
 			}else{
-				volumeBtn.gotoAndStop("loud");
+				if(volumeBtn != null)volumeBtn.gotoAndStop("loud");
 				if(volumeSlider != null)volumeSlider.mute(e.muted);
 			}
 		}
@@ -319,10 +390,10 @@ package
 		protected function onFullscreenClick(e:MouseEvent):void{
 			if(stage.displayState == StageDisplayState.NORMAL){
 				stage.displayState = StageDisplayState.FULL_SCREEN;
-				fullscreenBtn.gotoAndStop("normal");
+				if(fullscreenBtn != null)fullscreenBtn.gotoAndStop("normal");
 			}else{
 				stage.displayState = StageDisplayState.NORMAL;
-				fullscreenBtn.gotoAndStop("full");
+				if(fullscreenBtn != null)fullscreenBtn.gotoAndStop("full");
 			}
 		}
 		
@@ -330,6 +401,8 @@ package
 			if(e.buffering == false){
 				bufferingSymbol.visible = false;
 				speedText.visible = false;
+				hideControlBar();
+				_wake = false;
 			}else{
 				bufferingSymbol.visible = true;
 				addChild(bufferingSymbol);
@@ -337,6 +410,9 @@ package
 				
 				speedText.visible = true;
 				addChild(speedText);
+				
+				showControlBar();
+				_wake = true;
 			}
 		}
 		
